@@ -1,3 +1,0 @@
-/home/yuki/CPlusPlus/new_features/build/CMakeFiles/edit_cache.dir
-/home/yuki/CPlusPlus/new_features/build/CMakeFiles/rebuild_cache.dir
-/home/yuki/CPlusPlus/new_features/build/CMakeFiles/new_features.dir
