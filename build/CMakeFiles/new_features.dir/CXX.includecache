@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/thread_pool.h
+iostream
+-
+thread
+-
+vector
+-
+functional
+-
+atomic
+-
+mutex
+-
+condition_variable
+-
+functional
+-
+queue
+-
+thread
+-
+future
+-
+queue
+-
+
+/home/yuki/CPlusPlus/new_features/src/thread_pool.cpp
+thread_pool.h
+/home/yuki/CPlusPlus/new_features/src/thread_pool.h
+atomic
+-
+chrono
+-
+
