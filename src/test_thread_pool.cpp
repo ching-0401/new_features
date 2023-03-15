@@ -33,9 +33,10 @@ TEST_CASE("thread_pool test")
 		for(size_t i = 0; i < 10; ++i){
 			v.emplace_back(tp.enqueue(i));
 		}
+		static int t = 0;
 		for(auto&& i: v){
-			std::cout << i.get() << " ";
-			std::cout.flush();
+			CHECK_EQ(i.get(), t * 2);
+			t++;
 		}
 	}
 
