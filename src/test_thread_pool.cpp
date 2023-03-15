@@ -11,3 +11,33 @@
 
 #include "thread_pool.h"
 #include <doctest/doctest.h>
+
+TEST_CASE("promise_packaged_task_async_futures")
+{
+	yuki_new_features__thread_test::promiseFutureTest();
+	CHECK_EQ(1, 1);
+
+	yuki_new_features__thread_test::packagedtaskTest();
+	CHECK_EQ(1, 1);
+
+	yuki_new_features__thread_test::asyncTest(std::launch::async);
+	CHECK_EQ(1, 1);
+
+}
+
+TEST_CASE("thread_pool test")
+{
+	{
+		std::vector<std::future<int>> v;
+		yuki_new_features__thread_test::ThreadPoolFunction tp(4);
+		for(size_t i = 0; i < 10; ++i){
+			v.emplace_back(tp.enqueue(i));
+		}
+		for(auto&& i: v){
+			std::cout << i.get() << " ";
+			std::cout.flush();
+		}
+	}
+
+
+}

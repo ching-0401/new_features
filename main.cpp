@@ -15,11 +15,11 @@
 #include <thread>
 #include <random>
 #include <bits/stdc++.h>
-#include <gtest/gtest.h>
 
 #include "associative_container.h"  // to do
 #include "thread_pool.h"            // to do
 #include "template_test.h"          // to do
+
 
 using namespace std;
 

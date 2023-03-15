@@ -28,55 +28,41 @@ namespace yuki_new_features__thread_test
 {
     // promist & future & packaged_task & async
     void promiseFutureTest();
-
     void packagedtaskTest();
-
     void asyncTest(std::launch a_enum);
 
     // thread pool by promise
-    static std::mutex thread_pool_mutex;
-    static std::condition_variable condition_varia;
-
-    class TaskTestPromise
-    {
-    public:
-        std::promise<int> m_p;
-        int m_i;
-        TaskTestPromise();
-        TaskTestPromise(std::promise<int> &&a_p, int a_i);
-    };
-
-    class TaskQueueTestPromise
-    {
-    public:
-        std::mutex m_m;
-        std::queue<TaskTestPromise> m_queue;
-        bool pushTask(std::promise<int> &&, int);
-        bool popTask(TaskTestPromise& a_t);
-        bool isEmpty();
-
-    };
-
-
     class ThreadPoolTestPromise
     {
     public:
         ThreadPoolTestPromise(size_t a_thread_num);
-
         void initThread(size_t a_thread_num);
-
         void pushTask(std::promise<int> &, int);
 
     private:
-
-
-        TaskQueueTestPromise m_task_queue;
-        std::atomic<bool> m_flag;
+        std::queue<std::function<void()>> m_task_queue;
+        std::atomic<bool> m_stop;
         std::vector<std::thread> m_thread_pool;
         std::condition_variable m_cond_varia;
     };
 
 
+	// thread pool by packaged_task  enclosure by std::function
+	class ThreadPoolFunction
+	{
+	  public:
+		ThreadPoolFunction(size_t a_threads_num);
+		std::future<int> enqueue(int a_n);
+
+		~ThreadPoolFunction();
+
+	  private:
+		std::atomic<bool> m_stop;
+		std::mutex m_mutex;
+		std::condition_variable m_cv;
+		std::vector<std::thread> m_threads;
+		std::queue<std::function<void()>> m_queue;
+	};
 
     class TaskTest
     {

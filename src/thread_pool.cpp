@@ -1,141 +1,120 @@
 ﻿#include "thread_pool.h"
 #include <atomic>
 #include <chrono>
+#include <future>
 
 namespace yuki_new_features__thread_test
 {
-    // test promist & future & packaged_task & async
-    void promiseFutureTest()
-    {
-        auto f = [](std::promise<std::string>& a_p, std::mutex& a_m){
-            std::lock_guard l(a_m);
-            std::cout << "promiseTest" << std::endl;
-            a_p.set_value("child thread: promiseTest");
-        };
-        std::mutex m;
-        std::promise<std::string> p;
-        std::future<std::string> futu = p.get_future();
+	// test promist & future & packaged_task & async
+	void promiseFutureTest()
+	{
+		auto f = [](std::promise<std::string>& a_p, std::mutex& a_m) {
+			std::lock_guard l(a_m);
+			std::cout << "promiseTest" << std::endl;
+			a_p.set_value("child thread: promiseTest");
+		};
+		std::mutex m;
+		std::promise<std::string> p;
+		std::future<std::string> futu = p.get_future();
 
-        std::thread t(f, std::ref(p), std::ref(m));
-        t.join();
+		std::thread t(f, std::ref(p), std::ref(m));
+		t.join();
 
-        std::cout << futu.get() << std::endl;
+		std::cout << futu.get() << std::endl;
+	}
 
-    }
+	void packagedtaskTest()
+	{
+		auto f = [](int a_m, int a_n) { return a_m + a_n; };
+		std::packaged_task<int(int, int)> task(f);
 
-    void packagedtaskTest()
-    {
-        auto f = [](int a_m, int a_n){
-            return a_m + a_n;
-        };
-        std::packaged_task<int(int, int)> task(f);
+		std::future<int> res = task.get_future();
+		std::thread t(std::move(task), 1, 2);
+		std::cout << res.get() << std::endl;
+	}
 
+	void asyncTest(std::launch a_enum)
+	{
+		auto f = [](int a_m, int a_n) {
+			std::cout << "child thread value: " << a_m + a_n << std::endl;
+			return a_m + a_n;
+		};
+		std::future<int> ff = std::async(a_enum, f, 2, 3);
 
-        std::future<int> res = task.get_future();
-        std::thread t(std::move(task), 1, 2);
-        std::cout << res.get() << std::endl;
-    }
+		std::chrono::duration<int, std::ratio<1>> m3(10);
+		std::this_thread::sleep_for(m3);
 
-    void asyncTest(std::launch a_enum)
-    {
-        auto f = [](int a_m, int a_n){
-            std::cout << "child thread value: " << a_m + a_n << std::endl;
-            return a_m + a_n;
-        };
-        std::future<int> ff = std::async(a_enum, f, 2, 3);
+		std::cout << "asyncTest" << std::endl;
+		std::cout << ff.get() << std::endl;
+	}
 
+}
 
-        std::chrono::duration<int, std::ratio<1>> m3(10);
-        std::this_thread::sleep_for(m3);
+namespace yuki_new_features__thread_test
+{
 
-        std::cout << "asyncTest" << std::endl;
-        std::cout << ff.get() << std::endl;
+	// test thread pool by promise
+	ThreadPoolTestPromise::ThreadPoolTestPromise(size_t a_thread_num):m_stop(false)
+	{
 
-    }
+	}
 
+	// test thread pool by enclosure std::function
+	ThreadPoolFunction::ThreadPoolFunction(size_t a_threads_num):m_stop(false)
+	{
+		for(size_t i = 0; i < a_threads_num; ++i){
+			m_threads.emplace_back(
+				[this](){
+					while(1){
+						std::function<void()> f;
+						{
+							std::unique_lock<std::mutex> ul(this->m_mutex);
+							this->m_cv.wait(ul, [this](){return !this->m_queue.empty() || this->m_stop;});
+							if(this->m_stop){
+								break;
+							}
+							f = std::move(this->m_queue.front());
+							this->m_queue.pop();
+						}
+						f();
+					}
+				});
+		}
+	}
 
+	std::future<int> ThreadPoolFunction::enqueue(int a_n)
+	{
+		auto task = std::make_shared<std::packaged_task<int()>> (std::packaged_task<int()>([a_n](){
+			return a_n * 2;
+		}));
+		std::future<int> res = task->get_future();
+		{
+			std::unique_lock<std::mutex> lg(m_mutex);
+			m_queue.emplace([task](){ (*task)();});
 
+		}
+		m_cv.notify_one();
+		return res;
+	}
 
+	ThreadPoolFunction::~ThreadPoolFunction()
+	{
+		{
+			std::unique_lock<std::mutex> ul(m_mutex);
+			m_stop=true;
 
+		}
+		m_cv.notify_all();
+		for(auto& i: m_threads){
+			i.join();
+		}
 
+	}
 
+}
 
-    // test thread pool by promise
-    TaskTestPromise::TaskTestPromise()
-    {
-
-    }
-
-    TaskTestPromise::TaskTestPromise(std::promise<int> &&a_p, int a_i)
-    {
-        m_p = std::move(a_p);
-        m_i = a_i;
-    }
-
-    bool TaskQueueTestPromise::pushTask(std::promise<int> && a_p, int a_i)
-    {
-        std::lock_guard<std::mutex> l(thread_pool_mutex);
-        m_queue.push(TaskTestPromise(std::move(a_p), a_i));
-        condition_varia.notify_one();
-
-        return true;
-
-    }
-
-    bool TaskQueueTestPromise::popTask(TaskTestPromise& a_t)
-    {
-        std::unique_lock<std::mutex> l(thread_pool_mutex);
-        if(!m_queue.empty()){
-            a_t = m_queue.front();
-            m_queue.pop();
-        }
-    }
-
-    bool TaskQueueTestPromise::isEmpty()
-    {
-        return m_queue.empty();
-    }
-
-    ThreadPoolTestPromise::ThreadPoolTestPromise(size_t a_thread_num)
-    {
-        m_flag = true;
-
-    }
-
-
-    void ThreadPoolTestPromise::initThread(size_t a_thread_num)
-    {
-        for(size_t i = 0; i < a_thread_num; ++i){
-            m_thread_pool.emplace_back(std::thread([this](){
-                while(1){
-                    std::unique_lock<std::mutex> l(thread_pool_mutex);
-                    condition_varia.wait(l, [this](){
-                        return !this->m_task_queue.isEmpty();
-                    });
-
-                    if(!m_flag){
-                        return ;
-                    }
-                    TaskTestPromise t;
-                    this->m_task_queue.popTask(t);
-//                    std::this_thread::sleep_for(std::chrono::duration<int, std::ratio<1>> {3});
-                    t.m_p.set_value(t.m_i * 2);
-
-                }
-            }));
-        }
-    }
-
-
-    void ThreadPoolTestPromise::pushTask(std::promise<int>& a_p, int a_i)
-    {
-        m_task_queue.pushTask(a_p, a_i);
-    }
-
-
-
-
-
+namespace yuki_new_features__thread_test
+{
 
     TaskTest::TaskTest(std::packaged_task<int(int)>&& a_t, int a_i): m_int(a_i)
     {
@@ -164,11 +143,11 @@ namespace yuki_new_features__thread_test
 
     bool TaskQueueTest::popTask(TaskTest& a_t)
     {
-        std::unique_lock<std::mutex> l(thread_pool_mutex);
-        if(m_queue.size()){
-//            a_t = std::move(m_queue.front());
-            m_queue.pop();
-        }
+//        std::unique_lock<std::mutex> l(thread_pool_mutex);
+//        if(m_queue.size()){
+////            a_t = std::move(m_queue.front());
+//            m_queue.pop();
+//        }
     }
 
     bool TaskQueueTest::isEmpty()

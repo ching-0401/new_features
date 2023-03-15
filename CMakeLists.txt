@@ -9,13 +9,12 @@ set(CMAKE_CXX_STANDARD 17)
 #set(CMAKE_Ｌ_FLAGS "-fsanitize=undefined,address,leak -fno-omit-frame-pointer")
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/include)
-message(${CMAKE_SOURCE_DIR})
 
-aux_source_directory(${CMAKE_SOURCE_DIR}/src SRC)
+#aux_source_directory(${CMAKE_SOURCE_DIR}/src SRC)
 
 include_directories(${CMAKE_SOURCE_DIR}/inc)
-aux_source_directory(${CMAKE_SOURCE_DIR}/src SRC)
-
+#aux_source_directory(${CMAKE_SOURCE_DIR}/src/thread_pool.cpp THREAD_SRC)
+set(THREAD_SRC ${CMAKE_SOURCE_DIR}/src/thread_pool.cpp)
 include(FetchContent)
 FetchContent_Declare(
         doctest
@@ -25,11 +24,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(doctest)
 
+message(STATUS ${THREAD_SRC})
+
+add_executable(thread_test ${CMAKE_SOURCE_DIR}/src/test_thread_pool.cpp ${THREAD_SRC})
+target_link_libraries(thread_test doctest_with_main)
 
 
-
-add_executable(new_features main.cpp ${SRC})
-target_link_libraries(new_features PRIVATE ${EXTRA_LIBS})
+#add_executable(new_features main.cpp ${SRC})
+#target_link_libraries(new_features PRIVATE ${EXTRA_LIBS})
 
 #target_link_libraries(sort PRIVATE ${OpenCV_LIBS} ${EXTRA_LIBS})
 
