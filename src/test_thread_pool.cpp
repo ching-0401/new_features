@@ -9,36 +9,51 @@
  ******************************************************************************
  */
 
-#include "thread_pool.h"
 #include <doctest/doctest.h>
+
+#include "thread_pool.h"
 
 TEST_CASE("promise_packaged_task_async_futures")
 {
-	yuki_new_features__thread_test::promiseFutureTest();
-	CHECK_EQ(1, 1);
+	auto res = yuki_new_features__thread_test::promiseFutureTest();
+	CHECK_EQ(1, res);
 
-	yuki_new_features__thread_test::packagedtaskTest();
-	CHECK_EQ(1, 1);
+	auto res2 = yuki_new_features__thread_test::packagedTaskTest();
+	CHECK_EQ(1, res2);
 
-	yuki_new_features__thread_test::asyncTest(std::launch::async);
-	CHECK_EQ(1, 1);
-
+	auto res3 = yuki_new_features__thread_test::asyncTest(std::launch::async);
+	CHECK_EQ(1, res3);
 }
 
-TEST_CASE("thread_pool test")
+TEST_CASE("ThreadPoolFunction")
 {
 	{
 		std::vector<std::future<int>> v;
 		yuki_new_features__thread_test::ThreadPoolFunction tp(4);
-		for(size_t i = 0; i < 10; ++i){
+		for (size_t i = 0; i < 10; ++i) {
 			v.emplace_back(tp.enqueue(i));
 		}
 		static int t = 0;
-		for(auto&& i: v){
+		for (auto&& i : v) {
 			CHECK_EQ(i.get(), t * 2);
 			t++;
 		}
 	}
+}
 
-
+TEST_CASE("ThreadPoolTestPromise")
+{
+	{
+		yuki_new_features__thread_test::ThreadPoolTestPromise tp(4);
+		std::vector<std::future<int>> v;
+		for (size_t i = 0; i < 10; ++i) {
+			std::promise<int> p;
+			v.emplace_back(tp.pushTask(std::move(p)));
+		}
+		static int t = 0;
+		for (auto&& i : v) {
+			CHECK_EQ(i.get(), 4);
+			t++;
+		}
+	}
 }
