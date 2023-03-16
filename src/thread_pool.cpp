@@ -54,11 +54,32 @@ namespace yuki_new_features__thread_test
 {
 
 	// test thread pool by promise
-	ThreadPoolTestPromise::ThreadPoolTestPromise(size_t a_thread_num):m_stop(false)
+	ThreadPoolTestPromise::ThreadPoolTestPromise(size_t a_thread_num)
+		: m_stop(false)
+	{
+		std::thread([this]()
+		            {
+						std::unique_lock<std::mutex> ul(this->m_mutex);
+						this->m_cond_varia.wait(ul, [this](){
+							return !this->m_task_queue.empty() || m_stop;
+							if(m_stop){
+								break;
+							}
+							auto t = std::move(m_task_queue.front());
+							m_task_queue.pop();
+							t.set_value(i * 2);
+						});
+					});
+	}
+
+	std::future<int> ThreadPoolTestPromise::pushTask(std::promise<int> && a_p, int)
 	{
 
 	}
+}
 
+namespace yuki_new_features__thread_test
+{
 	// test thread pool by enclosure std::function
 	ThreadPoolFunction::ThreadPoolFunction(size_t a_threads_num):m_stop(false)
 	{

@@ -37,13 +37,14 @@ namespace yuki_new_features__thread_test
     public:
         ThreadPoolTestPromise(size_t a_thread_num);
         void initThread(size_t a_thread_num);
-        void pushTask(std::promise<int> &, int);
+        std::future<int> pushTask(std::promise<int> &&, int);
 
     private:
-        std::queue<std::function<void()>> m_task_queue;
+        std::queue<std::promise<int>> m_task_queue;
         std::atomic<bool> m_stop;
         std::vector<std::thread> m_thread_pool;
         std::condition_variable m_cond_varia;
+		std::mutex m_mutex;
     };
 
 
