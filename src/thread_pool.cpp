@@ -10,7 +10,7 @@ namespace yuki_new_features__thread_test
 	int promiseFutureTest()
 	{
 		auto f = [](std::promise<std::int32_t>& a_p, std::mutex& a_m) {
-			std::lock_guard l(a_m);
+			std::lock_guard<std::mutex> l(a_m);
 			a_p.set_value(1);
 		};
 		std::mutex m;
